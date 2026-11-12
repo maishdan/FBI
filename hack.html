@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHADOW BROKERS</title>
+    <style>
+        /* Reset and full screen setup */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0d0d0d;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* Matrix Background Canvas */
+        #matrix-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.3; /* Dim the matrix so text is readable */
+        }
+
+        /* Centering the Box */
+        .container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            width: 80%;
+            max-width: 700px;
+        }
+
+        /* The Terminal Box */
+        .terminal-box {
+            background-color: #1e1e1e;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 40px 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            /* Smooth transition for the siren effect */
+            transition: box-shadow 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
+        }
+
+        /* Text styling */
+        #main-title {
+            color: #ff3333;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0 0 20px 0;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px rgba(255, 51, 51, 0.5);
+        }
+
+        /* Subtext container to keep lines stacked */
+        .text-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+        .sub-line {
+            color: #cccccc;
+            font-size: 1rem;
+            margin: 5px 0;
+            white-space: pre-wrap;
+            display: inline-block;
+            text-align: left;
+            line-height: 1.5;
+        }
+
+        #fbi-text {
+            color: #ff0000;
+            font-weight: bold;
+            margin-top: 15px;
+            text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+        }
+
+        /* The cursor element */
+        .cursor {
+            display: inline-block;
+            width: 9px;
+            height: 1.2rem;
+            background-color: #4a90e2; /* Blue cursor */
+            vertical-align: text-bottom;
+            margin-left: 3px;
+            animation: blink 1s step-end infinite;
+        }
+
+        /* Blinking animation for cursor */
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* ==========================================
+           SIREN / RED GLOW WARNING ANIMATION
+           ========================================== */
+        .siren-active {
+            animation: redSiren 1.5s infinite alternate;
+        }
+
+        @keyframes redSiren {
+            0% {
+                box-shadow: 0 0 20px rgba(255, 0, 0, 0.2), inset 0 0 10px rgba(255, 0, 0, 0.1);
+                border-color: #ff0000;
+                background-color: #2a1010;
+            }
+            100% {
+                box-shadow: 0 0 80px rgba(255, 0, 0, 0.8), inset 0 0 40px rgba(255, 0, 0, 0.6);
+                border-color: #ff6666;
+                background-color: #4d0000;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Matrix Background -->
+    <canvas id="matrix-canvas"></canvas>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="terminal-box" id="terminal-box">
+            <div id="main-title"></div>
+            <div class="text-container">
+                <!-- Line 1 -->
+                <div class="sub-line">
+                    <span id="sub-text-1"></span><span class="cursor" id="cursor"></span>
+                </div>
+                <!-- Line 2 (FBI) -->
+                <div class="sub-line" id="fbi-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================
+           1. MATRIX BACKGROUND LOGIC (UPDATED)
+           ========================================== */
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // THE WORD WE WANT TO FALL
+        const wordToDrop = "SCAMMER";
+        
+        // We mix the word with some numbers/symbols so it doesn't look too uniform
+        const symbolPool = "!@#$%^&*()_+-=[]{}|;:,.<>?/0123456789";
+
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+
+        // Array to track the y-coordinate and current letter index for each drop
+        const drops = [];
+        for (let x = 0; x < columns; x++) {
+            // Start at random heights to make it look organic
+            drops[x] = {
+                y: Math.random() * canvas.height,
+                charIndex: Math.floor(Math.random() * wordToDrop.length)
+            };
+        }
+
+        function drawMatrix() {
+            // Fade effect (creates the trailing tail)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.08)'; // Slightly higher opacity so the words are readable
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Text color (green)
+            ctx.fillStyle = '#0F0';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                // 80% of the time, type the next letter of "SCAMMER". 
+                // 20% of the time, type a random symbol to break up the pattern.
+                let char;
+                if (Math.random() > 0.2) {
+                    char = wordToDrop.charAt(drops[i].charIndex);
+                } else {
+                    char = symbolPool.charAt(Math.floor(Math.random() * symbolPool.length));
+                }
+
+                // Draw the character
+                ctx.fillText(char, i * fontSize, drops[i].y * fontSize);
+
+                // Move the drop down
+                drops[i].y++;
+                drops[i].charIndex++;
+
+                // Reset logic
+                if (drops[i].y * fontSize > canvas.height) {
+                    // Randomly reset to top if off screen
+                    if (Math.random() > 0.95) {
+                        drops[i].y = 0;
+                        drops[i].charIndex = Math.floor(Math.random() * wordToDrop.length);
+                    }
+                }
+                
+                // If we finish spelling SCAMMER, start over at S
+                if (drops[i].charIndex >= wordToDrop.length) {
+                    drops[i].charIndex = 0;
+                }
+            }
+        }
+
+        // Run matrix animation (slower interval so the word "SCAMMER" is easier to read as it falls)
+        setInterval(drawMatrix, 50);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+
+        /* ==========================================
+           2. TYPEWRITER EFFECT LOGIC
+           ========================================== */
+        const titleElement = document.getElementById('main-title');
+        const textElement1 = document.getElementById('sub-text-1');
+        const textElement2 = document.getElementById('fbi-text');
+        const terminalBox = document.getElementById('terminal-box');
+        const cursorElement = document.getElementById('cursor');
+        
+        const titleString = "[!] SHADOW BROKERS (Russia) [!]";
+        const textString1 = "Scammer!! Scammer!! Scammer!! Scammer!!.We are watching You!! ";
+        const textString2 = "FBI: WE ARE COMING FOR YOU.";
+
+        let titleIndex = 0;
+        let textIndex1 = 0;
+        let textIndex2 = 0;
+
+        function typeTitle() {
+            if (titleIndex < titleString.length) {
+                titleElement.innerHTML += titleString.charAt(titleIndex);
+                titleIndex++;
+                setTimeout(typeTitle, 60);
+            } else {
+                setTimeout(typeText1, 300); 
+            }
+        }
+
+        function typeText1() {
+            if (textIndex1 < textString1.length) {
+                textElement1.textContent += textString1.charAt(textIndex1);
+                textIndex1++;
+                setTimeout(typeText1, 40);
+            } else {
+                // Move cursor to the new line and start typing FBI text
+                cursorElement.style.display = 'none'; // Hide the cursor while switching lines
+                setTimeout(typeText2, 500); 
+            }
+        }
+
+        function typeText2() {
+            if (textIndex2 < textString2.length) {
+                textElement2.textContent += textString2.charAt(textIndex2);
+                textIndex2++;
+                setTimeout(typeText2, 80); // Slower, more dramatic typing for FBI
+            } else {
+                // All typing is done. Trigger the SIREN!
+                setTimeout(triggerSiren, 500);
+            }
+        }
+
+        function triggerSiren() {
+            // Add the CSS class that triggers the red pulsing animation
+            terminalBox.classList.add('siren-active');
+            
+            // Make the text blink along with it
+            setInterval(() => {
+                titleElement.style.opacity = titleElement.style.opacity === '0.5' ? '1' : '0.5';
+                textElement2.style.opacity = textElement2.style.opacity === '0.5' ? '1' : '0.5';
+            }, 750);
+        }
+
+        // Start the sequence on load
+        window.onload = () => {
+            typeTitle();
+        };
+
+    </script>
+</body>
+</html>
